@@ -1,0 +1,6 @@
+- Set updated_at whenever a change is detected
+- Create journal_note when a note with journal category is created
+    - Prevent creating multiple ones in the same day
+    - Prevent creating ones in the future or past
+- Update end_time of journal_content automatically.
+- Automatically create counter-relation when a relation is added to people_relations
