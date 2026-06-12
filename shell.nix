@@ -9,7 +9,7 @@ pkgs.mkShell {
     cargo 
     cargo-tauri
     nodejs 
-    nodePackages.pnpm
+    pnpm
     rustc # Needed for dev server (pnpm tauri dev)
   ];
 
