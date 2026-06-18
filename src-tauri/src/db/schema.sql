@@ -1,5 +1,23 @@
--- Todo:
--- * PLan out file encryption flow
+-- ==================================================
+-- Vault
+-- ==================================================
+
+-- Should include:
+-- * Master salt
+-- * KDF version
+--
+-- These should be generated during vault initialization.
+CREATE TABLE vault_metadata (
+    key TEXT PRIMARY KEY,
+    value BLOB NOT NULL
+);
+
+-- For convenience, user settings will have to be defined outside the database.
+-- This makes creating them more flexible.
+CREATE TABLE user_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
 
 -- ==================================================
 -- Notes
@@ -10,12 +28,12 @@ CREATE TABLE note_category (
     category TEXT
 );
 
-INSERT INTO note_category (category) 
+INSERT INTO note_category (category)
 VALUES
-    ('journal'), 
-    ('people'), 
-    ('writings'), 
-    ('knowledge'), 
+    ('journal'),
+    ('people'),
+    ('writings'),
+    ('knowledge'),
     ('files');
 
 CREATE TABLE tags (
@@ -26,22 +44,22 @@ CREATE TABLE tags (
 CREATE TABLE notes (
     note_id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
-    created_at TEXT 
+    created_at TEXT
         DEFAULT (DATETIME('now')),
     updated_at TEXT
         DEFAULT (DATETIME('now')),
     category_id INTEGER,
-    FOREIGN KEY (category_id) 
+    FOREIGN KEY (category_id)
         REFERENCES note_category(category_id)
 );
 
 CREATE TABLE notes_tags (
     note_id INTEGER,
     tag_id INTEGER,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (tag_id) 
+    FOREIGN KEY (tag_id)
         REFERENCES tags(tag_id)
         ON DELETE CASCADE
 );
@@ -52,13 +70,13 @@ CREATE TABLE notes_tags (
 
 CREATE TABLE journal_notes (
     note_id INTEGER PRIMARY KEY,
-    calendar_day TEXT 
+    calendar_day TEXT
         DEFAULT (DATE('now'))
         UNIQUE,
-    mood_rating INTEGER 
-        CHECK (mood_rating BETWEEN 0 and 10) 
+    mood_rating INTEGER
+        CHECK (mood_rating BETWEEN 0 and 10)
         DEFAULT 5,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -82,7 +100,7 @@ CREATE TABLE journal_content (
 CREATE TABLE people_nicknames (
     note_id INTEGER,
     nickname TEXT,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -91,7 +109,7 @@ CREATE TABLE people_contact_info (
     note_id INTEGER,
     medium TEXT,
     identifier TEXT,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -99,7 +117,7 @@ CREATE TABLE people_contact_info (
 CREATE TABLE people_physical_traits (
     note_id INTEGER,
     physical_trait TEXT,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -107,7 +125,7 @@ CREATE TABLE people_physical_traits (
 CREATE TABLE people_behavioral_traits (
     note_id INTEGER,
     behavioral_trait TEXT,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -118,7 +136,7 @@ CREATE TABLE people_impression_over_time (
         DEFAULT (DATETIME('now')),
     impression_rating INTEGER
         CHECK (impression_rating BETWEEN 0 and 10),
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
@@ -135,10 +153,10 @@ CREATE TABLE people_notes (
     relation_to_me TEXT DEFAULT NULL,
     first_met TEXT DEFAULT NULL, -- meeting date
     met_place TEXT DEFAULT NULL,
-    FOREIGN KEY (note_id) 
+    FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (photo_note_id) 
+    FOREIGN KEY (photo_note_id)
         REFERENCES notes(note_id)
 );
 
@@ -157,26 +175,26 @@ CREATE TABLE people_relations (
 CREATE TABLE drafts (
     draft_id INTEGER PRIMARY KEY,  -- explicit, so parts can reference it
     note_id  INTEGER,
-    FOREIGN KEY (note_id) 
-        REFERENCES notes(note_id) 
+    FOREIGN KEY (note_id)
+        REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
 
 CREATE TABLE parts (
     draft_id INTEGER,
     content  TEXT,
-    FOREIGN KEY (draft_id) 
-        REFERENCES drafts(draft_id) 
+    FOREIGN KEY (draft_id)
+        REFERENCES drafts(draft_id)
         ON DELETE CASCADE
 );
 
 CREATE TABLE writing_category (
-    category_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT
 );
 
 INSERT INTO writing_category (label)
-VALUES 
+VALUES
     -- Fiction
     ("Story"),
     ("Short Story"),
@@ -274,12 +292,12 @@ CREATE TABLE writings_notes (
     note_id INTEGER PRIMARY KEY,
     category_id INTEGER DEFAULT NULL,
     status_id INTEGER DEFAULT NULL,
-    FOREIGN KEY (category_id) 
+    FOREIGN KEY (category_id)
         REFERENCES writing_category(category_id),
-    FOREIGN KEY (status_id) 
+    FOREIGN KEY (status_id)
         REFERENCES writing_status(status_id),
-    FOREIGN KEY (note_id) 
-        REFERENCES notes(note_id) 
+    FOREIGN KEY (note_id)
+        REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
 
@@ -399,12 +417,12 @@ CREATE TABLE knowledge_notes (
     status_id INTEGER DEFAULT NULL,
     subject_id INTEGER DEFAULT NULL,
     content TEXT DEFAULT NULL,
-    FOREIGN KEY (status_id) 
+    FOREIGN KEY (status_id)
         REFERENCES knowledge_status(status_id),
-    FOREIGN KEY (subject_id) 
+    FOREIGN KEY (subject_id)
         REFERENCES knowledge_subject(subject_id),
-    FOREIGN KEY (note_id) 
-        REFERENCES notes(note_id) 
+    FOREIGN KEY (note_id)
+        REFERENCES notes(note_id)
         ON DELETE CASCADE
 );
 
@@ -416,7 +434,11 @@ CREATE TABLE file_notes (
     note_id INTEGER PRIMARY KEY,
     encrypted_filename TEXT DEFAULT NULL,
     mime_type TEXT DEFAULT NULL,
-    size_bytes INTEGER DEFAULT (0)
+    size_bytes INTEGER DEFAULT (0),
+    file_salt BLOB NOT NULL,
+    FOREIGN KEY (note_id)
+        REFERENCES notes(note_id)
+        ON DELETE CASCADE
 );
 
 -- ==================================================
@@ -439,11 +461,11 @@ CREATE TRIGGER fts_notes_after_insert
 AFTER INSERT ON notes
 BEGIN
     -- Insert into title_search
-    INSERT INTO title_search (note_id, title) 
+    INSERT INTO title_search (note_id, title)
     VALUES (NEW.note_id, NEW.title);
 
-    -- Insert title into content_search 
-    INSERT INTO content_search (note_id, note_content) 
+    -- Insert title into content_search
+    INSERT INTO content_search (note_id, note_content)
     VALUES (NEW.note_id, NEW.title);
 END;
 
@@ -451,15 +473,15 @@ CREATE TRIGGER fts_notes_after_update
 AFTER UPDATE OF title ON notes
 BEGIN
     -- Update title_search
-    UPDATE title_search 
-    SET title = NEW.title 
+    UPDATE title_search
+    SET title = NEW.title
     WHERE note_id = NEW.note_id;
 
     -- Update content_search (swap old title for new one)
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.title;
 
-    INSERT INTO content_search (note_id, note_content) 
+    INSERT INTO content_search (note_id, note_content)
     VALUES (NEW.note_id, NEW.title);
 END;
 
@@ -483,7 +505,7 @@ END;
 CREATE TRIGGER fts_journal_content_after_update
 AFTER UPDATE OF content ON journal_content
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.content;
 
     INSERT INTO content_search (note_id, note_content)
@@ -493,7 +515,7 @@ END;
 CREATE TRIGGER fts_journal_content_after_delete
 AFTER DELETE ON journal_content
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.content;
 END;
 
@@ -510,7 +532,7 @@ END;
 CREATE TRIGGER fts_people_notes_after_update
 AFTER UPDATE OF met_place ON people_notes
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.met_place;
 
     INSERT INTO content_search (note_id, note_content)
@@ -520,7 +542,7 @@ END;
 CREATE TRIGGER fts_people_notes_after_delete
 AFTER DELETE ON people_notes
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.met_place;
 END;
 
@@ -537,7 +559,7 @@ END;
 CREATE TRIGGER fts_people_nicknames_after_update
 AFTER UPDATE OF nickname ON people_nicknames
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.nickname;
 
     INSERT INTO content_search (note_id, note_content)
@@ -547,7 +569,7 @@ END;
 CREATE TRIGGER fts_people_nicknames_after_delete
 AFTER DELETE ON people_nicknames
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.nickname;
 END;
 
@@ -564,7 +586,7 @@ END;
 CREATE TRIGGER fts_people_contact_after_update
 AFTER UPDATE OF identifier ON people_contact_info
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.identifier;
 
     INSERT INTO content_search (note_id, note_content)
@@ -574,7 +596,7 @@ END;
 CREATE TRIGGER fts_people_contact_after_delete
 AFTER DELETE ON people_contact_info
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.identifier;
 END;
 
@@ -591,7 +613,7 @@ END;
 CREATE TRIGGER fts_people_physical_after_update
 AFTER UPDATE OF physical_trait ON people_physical_traits
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.physical_trait;
 
     INSERT INTO content_search (note_id, note_content)
@@ -601,7 +623,7 @@ END;
 CREATE TRIGGER fts_people_physical_after_delete
 AFTER DELETE ON people_physical_traits
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.physical_trait;
 END;
 
@@ -618,7 +640,7 @@ END;
 CREATE TRIGGER fts_people_behavioral_after_update
 AFTER UPDATE OF behavioral_trait ON people_behavioral_traits
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.behavioral_trait;
 
     INSERT INTO content_search (note_id, note_content)
@@ -628,7 +650,7 @@ END;
 CREATE TRIGGER fts_people_behavioral_after_delete
 AFTER DELETE ON people_behavioral_traits
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.behavioral_trait;
 END;
 
@@ -645,7 +667,7 @@ END;
 CREATE TRIGGER fts_knowledge_after_update
 AFTER UPDATE OF content ON knowledge_notes
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.content;
 
     INSERT INTO content_search (note_id, note_content)
@@ -655,13 +677,13 @@ END;
 CREATE TRIGGER fts_knowledge_after_delete
 AFTER DELETE ON knowledge_notes
 BEGIN
-    DELETE FROM content_search 
+    DELETE FROM content_search
     WHERE note_id = OLD.note_id AND note_content = OLD.content;
 END;
 
 
 -- <-- FTS Triggers: Writings (Parts via Drafts) -->
--- Because 'parts' lacks a 'note_id', we must join it 
+-- Because 'parts' lacks a 'note_id', we must join it
 -- with 'drafts' to find where the content belongs.
 -- Fact check: true. AI is right for once!
 
@@ -679,8 +701,8 @@ CREATE TRIGGER fts_parts_after_update
 AFTER UPDATE OF content ON parts
 BEGIN
     -- Delete the old content using a subquery to find the note_id
-    DELETE FROM content_search 
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id) 
+    DELETE FROM content_search
+    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id)
       AND note_content = OLD.content;
 
     -- Insert the new content
@@ -694,8 +716,8 @@ END;
 CREATE TRIGGER fts_parts_after_delete
 AFTER DELETE ON parts
 BEGIN
-    DELETE FROM content_search 
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id) 
+    DELETE FROM content_search
+    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id)
       AND note_content = OLD.content;
 END;
 
@@ -809,13 +831,13 @@ CREATE TRIGGER updated_at_journal_content_update
 AFTER UPDATE OF content ON journal_content
 BEGIN
     -- Update end_time on journal_content
-    UPDATE journal_content 
-    SET end_time = TIME('now') 
+    UPDATE journal_content
+    SET end_time = TIME('now')
     WHERE rowid = OLD.rowid;
 
-    -- Update updated_at 
-    UPDATE notes 
-    SET updated_at = DATETIME('now') 
+    -- Update updated_at
+    UPDATE notes
+    SET updated_at = DATETIME('now')
     WHERE note_id = NEW.note_id;
 END;
 
@@ -938,21 +960,21 @@ END;
 CREATE TRIGGER updated_at_people_relations_insert
 AFTER INSERT ON people_relations
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id IN (NEW.note_id_a, NEW.note_id_b);
 END;
 
 CREATE TRIGGER updated_at_people_relations_update
 AFTER UPDATE OF relation, intimacy_rating ON people_relations
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id IN (NEW.note_id_a, NEW.note_id_b);
 END;
 
 CREATE TRIGGER updated_at_people_relations_delete
 AFTER DELETE ON people_relations
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id IN (OLD.note_id_a, OLD.note_id_b);
 END;
 
@@ -969,20 +991,20 @@ END;
 CREATE TRIGGER updated_at_parts_insert
 AFTER INSERT ON parts
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = NEW.draft_id);
 END;
 
 CREATE TRIGGER updated_at_parts_update
 AFTER UPDATE OF content ON parts
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = NEW.draft_id);
 END;
 
 CREATE TRIGGER updated_at_parts_delete
 AFTER DELETE ON parts
 BEGIN
-    UPDATE notes SET updated_at = DATETIME('now') 
+    UPDATE notes SET updated_at = DATETIME('now')
     WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id);
 END;
