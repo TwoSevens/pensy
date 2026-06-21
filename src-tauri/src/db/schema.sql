@@ -435,7 +435,7 @@ CREATE TABLE file_notes (
     encrypted_filename TEXT DEFAULT NULL,
     mime_type TEXT DEFAULT NULL,
     size_bytes INTEGER DEFAULT (0),
-    file_salt BLOB NOT NULL,
+    file_salt BLOB DEFAULT NULL,
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
