@@ -722,41 +722,165 @@ BEGIN
 END;
 
 -- ==================================================
--- Triggers
+-- Views + Triggers
 -- ==================================================
 
 -- <-- Notes setup -->
+-- NOTE: The created views are only intended to streamline notes insertion. 
+-- Deletion and updating should be done through either the notes table or the corresponding _notes table.
 
-CREATE TRIGGER after_notes_insert
-AFTER INSERT ON notes
+-- JOURNAL
+
+CREATE VIEW journal_note_entry AS
+SELECT
+    n.note_id,
+    n.title,
+    n.created_at,
+    n.updated_at,
+    j.calendar_day,
+    j.mood_rating
+FROM notes n
+JOIN journal_notes j ON j.note_id = n.note_id
+WHERE n.category_id = 1;
+
+CREATE TRIGGER journal_note_insert
+INSTEAD OF INSERT ON journal_note_entry
 BEGIN
-    -- Branch: Journal — guard against duplicate
-    SELECT RAISE(ABORT, 'A journal note for today already exists.')
-    WHERE NEW.category_id = 1
-    AND EXISTS (
-        SELECT 1 FROM journal_notes
-        WHERE calendar_day = DATE('now')
+    INSERT INTO notes (title, category_id)
+    VALUES (NEW.title, 1);
+
+    INSERT INTO journal_notes (note_id, calendar_day, mood_rating)
+    VALUES (
+        last_insert_rowid(),
+        COALESCE(NEW.calendar_day, DATE('now')),
+        COALESCE(NEW.mood_rating, 5)
     );
+END;
 
-    -- Branch: Journal
-    INSERT INTO journal_notes (note_id)
-    SELECT NEW.note_id WHERE NEW.category_id = 1;
 
-    -- Branch: People
-    INSERT INTO people_notes (note_id)
-    SELECT NEW.note_id WHERE NEW.category_id = 2;
+-- PEOPLE
 
-    -- Branch: Writings
-    INSERT INTO writings_notes (note_id)
-    SELECT NEW.note_id WHERE NEW.category_id = 3;
+CREATE VIEW people_note_entry AS
+SELECT
+    n.note_id,
+    n.title,
+    n.created_at,
+    n.updated_at,
+    p.photo_note_id,
+    p.relation_to_me,
+    p.first_met,
+    p.met_place
+FROM notes n
+JOIN people_notes p ON p.note_id = n.note_id
+WHERE n.category_id = 2;
 
-    -- Branch: Knowledge
-    INSERT INTO knowledge_notes (note_id)
-    SELECT NEW.note_id WHERE NEW.category_id = 4;
+CREATE TRIGGER people_note_insert
+INSTEAD OF INSERT ON people_note_entry
+BEGIN
+    INSERT INTO notes (title, category_id)
+    VALUES (NEW.title, 2);
 
-    -- Branch: Files
-    INSERT INTO file_notes (note_id)
-    SELECT NEW.note_id WHERE NEW.category_id = 5;
+    INSERT INTO people_notes (note_id, photo_note_id, relation_to_me, first_met, met_place)
+    VALUES (
+        last_insert_rowid(),
+        NEW.photo_note_id,
+        NEW.relation_to_me,
+        NEW.first_met,
+        NEW.met_place
+    );
+END;
+
+
+-- WRITINGS
+
+CREATE VIEW writings_note_entry AS
+SELECT
+    n.note_id,
+    n.title,
+    n.created_at,
+    n.updated_at,
+    w.category_id AS writing_category_id,
+    w.status_id   AS writing_status_id
+FROM notes n
+JOIN writings_notes w ON w.note_id = n.note_id
+WHERE n.category_id = 3;
+
+CREATE TRIGGER writings_note_insert
+INSTEAD OF INSERT ON writings_note_entry
+BEGIN
+    INSERT INTO notes (title, category_id)
+    VALUES (NEW.title, 3);
+
+    INSERT INTO writings_notes (note_id, category_id, status_id)
+    VALUES (
+        last_insert_rowid(),
+        NEW.writing_category_id,
+        NEW.writing_status_id
+    );
+END;
+
+
+-- KNOWLEDGE
+
+CREATE VIEW knowledge_note_entry AS
+SELECT
+    n.note_id,
+    n.title,
+    n.created_at,
+    n.updated_at,
+    k.status_id  AS knowledge_status_id,
+    k.subject_id AS knowledge_subject_id,
+    k.content
+FROM notes n
+JOIN knowledge_notes k ON k.note_id = n.note_id
+WHERE n.category_id = 4;
+
+CREATE TRIGGER knowledge_note_insert
+INSTEAD OF INSERT ON knowledge_note_entry
+BEGIN
+    INSERT INTO notes (title, category_id)
+    VALUES (NEW.title, 4);
+
+    INSERT INTO knowledge_notes (note_id, status_id, subject_id, content)
+    VALUES (
+        last_insert_rowid(),
+        NEW.knowledge_status_id,
+        NEW.knowledge_subject_id,
+        NEW.content
+    );
+END;
+
+
+-- FILES
+
+CREATE VIEW file_note_entry AS
+SELECT
+    n.note_id,
+    n.title,
+    n.created_at,
+    n.updated_at,
+    f.encrypted_filename,
+    f.mime_type,
+    f.size_bytes,
+    f.file_salt
+FROM notes n
+JOIN file_notes f ON f.note_id = n.note_id
+WHERE n.category_id = 5;
+
+CREATE TRIGGER file_note_insert
+INSTEAD OF INSERT ON file_note_entry
+BEGIN
+    INSERT INTO notes (title, category_id)
+    VALUES (NEW.title, 5);
+
+    INSERT INTO file_notes (note_id, encrypted_filename, mime_type, size_bytes, file_salt)
+    VALUES (
+        last_insert_rowid(),
+        NEW.encrypted_filename,
+        NEW.mime_type,
+        COALESCE(NEW.size_bytes, 0),
+        NEW.file_salt
+    );
 END;
 
 -- <-- Notes consistency -->
