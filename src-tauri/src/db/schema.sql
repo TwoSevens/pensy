@@ -151,6 +151,8 @@ CREATE TABLE people_notes (
     note_id INTEGER PRIMARY KEY,
     photo_note_id INTEGER DEFAULT NULL,
     relation_to_me TEXT DEFAULT NULL,
+    date_of_birth TEXT DEFAULT NULL,
+    residence_place TEXT DEFAULT NULL,
     first_met TEXT DEFAULT NULL, -- meeting date
     met_place TEXT DEFAULT NULL,
     FOREIGN KEY (note_id)
@@ -768,6 +770,8 @@ SELECT
     n.updated_at,
     p.photo_note_id,
     p.relation_to_me,
+    p.date_of_birth,
+    p.residence_place,
     p.first_met,
     p.met_place
 FROM notes n
@@ -780,11 +784,13 @@ BEGIN
     INSERT INTO notes (title, category_id)
     VALUES (NEW.title, 2);
 
-    INSERT INTO people_notes (note_id, photo_note_id, relation_to_me, first_met, met_place)
+    INSERT INTO people_notes (note_id, photo_note_id, relation_to_me, date_of_birth, residence_place, first_met, met_place)
     VALUES (
         last_insert_rowid(),
         NEW.photo_note_id,
         NEW.relation_to_me,
+        NEW.date_of_birth,
+        NEW.residence_place,
         NEW.first_met,
         NEW.met_place
     );
