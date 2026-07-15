@@ -16,5 +16,6 @@ pkgs.mkShell {
   buildInputs = with pkgs; [
     librsvg
     webkitgtk_4_1
+    openssl # Needed by rusqlite
   ];
 }

@@ -2,7 +2,7 @@
 name = "pensy"
 version = "0.1.0"
 description = "A Tauri App"
-authors = ["you"]
+authors = ["Mohamed"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -22,4 +22,12 @@ tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.39.0", features = ["sqlcipher"] }
+rusqlite = { version = "0.39.0", features = ["bundled-sqlcipher"] }
+hex = "0.4.3"
+
+# Security packages
+argon2 = "0.5.3" # Used to derive master key from password and salt
+sha2 = "0.11.0" # Provides SHA_256 algo needed by hkdf
+hkdf = "0.13.0" # Derives child keys from master key
+aes-gcm = "0.11.0" # Encrypts and decrypts files
+rand_os = "0.2.2" # I need to check if this is actually secure

@@ -56,6 +56,7 @@ CREATE TABLE notes (
 CREATE TABLE notes_tags (
     note_id INTEGER,
     tag_id INTEGER,
+    PRIMARY KEY (note_id, tag_id),
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE,
@@ -318,7 +319,7 @@ VALUES
     ("Researching"),
     ("Learning"),
     ("Completed"),
-    ("Confuding"),
+    ("Confused"),
     ("Postponed"),
     ("Dropped");
 
