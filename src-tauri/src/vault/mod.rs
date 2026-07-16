@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::Write;
 
 pub struct VaultState {
-    pub master_key: [u8; 32],
+    master_key: [u8; 32],
     pub database: Connection,
     pub path: PathBuf,
 }
@@ -62,7 +62,7 @@ impl VaultState {
     }
 
     // TODO:
-    // pub fn store_attachment(&self, attachment: &[u8], filename: &str, salt: &[u8], key: &[u8]) -> Result<(), String> {}
-    // pub fn get_attachment(&self, filename: &str, salt: &[u8], key: &[u8]) -> Result<Vec<u8>, String> {}
-    // pub fn delete_attachment(&self, filename: &str) -> Result<(), String> {}
+    // pub fn store_blob(&self, attachment: &[u8], filename: &str, salt: &[u8], key: &[u8]) -> Result<(), String> {}
+    // pub fn get_blob(&self, filename: &str, salt: &[u8], key: &[u8]) -> Result<Vec<u8>, String> {}
+    // pub fn delete_blob(&self, filename: &str) -> Result<(), String> {}
 }
