@@ -2,11 +2,6 @@
 -- Vault
 -- ==================================================
 
--- Should include:
--- * Master salt
--- * KDF version
---
--- These should be generated during vault initialization.
 CREATE TABLE vault_metadata (
     key TEXT PRIMARY KEY,
     value BLOB NOT NULL
