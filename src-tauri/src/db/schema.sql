@@ -430,10 +430,12 @@ CREATE TABLE knowledge_notes (
 
 CREATE TABLE file_notes (
     note_id INTEGER PRIMARY KEY,
-    encrypted_filename TEXT DEFAULT NULL,
+    encrypted_filename TEXT DEFAULT NULL, -- This is the filename of the encrypted file stored in the vault. It should be unique to avoid overwriting files.
     mime_type TEXT DEFAULT NULL,
     size_bytes INTEGER DEFAULT (0),
     file_salt BLOB DEFAULT NULL,
+    text_content TEXT DEFAULT NULL, -- This is for full-text search indexing of the file's content, if applicable.
+    text_note TEXT DEFAULT NULL, -- This is for user-provided descriptions or notes about the file.
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
@@ -719,6 +721,49 @@ BEGIN
       AND note_content = OLD.content;
 END;
 
+
+-- <-- FTS Triggers: File Notes -->
+
+CREATE TRIGGER fts_file_notes_after_insert
+AFTER INSERT ON file_notes
+BEGIN
+    INSERT INTO content_search (note_id, note_content)
+    SELECT NEW.note_id, NEW.text_content WHERE NEW.text_content IS NOT NULL;
+
+    INSERT INTO content_search (note_id, note_content)
+    SELECT NEW.note_id, NEW.text_note WHERE NEW.text_note IS NOT NULL;
+END;
+
+CREATE TRIGGER fts_file_notes_after_update_text_content
+AFTER UPDATE OF text_content ON file_notes
+BEGIN
+    DELETE FROM content_search
+    WHERE note_id = OLD.note_id AND note_content = OLD.text_content;
+
+    INSERT INTO content_search (note_id, note_content)
+    SELECT NEW.note_id, NEW.text_content WHERE NEW.text_content IS NOT NULL;
+END;
+
+CREATE TRIGGER fts_file_notes_after_update_text_note
+AFTER UPDATE OF text_note ON file_notes
+BEGIN
+    DELETE FROM content_search
+    WHERE note_id = OLD.note_id AND note_content = OLD.text_note;
+
+    INSERT INTO content_search (note_id, note_content)
+    SELECT NEW.note_id, NEW.text_note WHERE NEW.text_note IS NOT NULL;
+END;
+
+CREATE TRIGGER fts_file_notes_after_delete
+AFTER DELETE ON file_notes
+BEGIN
+    DELETE FROM content_search
+    WHERE note_id = OLD.note_id AND note_content = OLD.text_content;
+
+    DELETE FROM content_search
+    WHERE note_id = OLD.note_id AND note_content = OLD.text_note;
+END;
+
 -- ==================================================
 -- Views + Triggers
 -- ==================================================
@@ -864,7 +909,9 @@ SELECT
     f.encrypted_filename,
     f.mime_type,
     f.size_bytes,
-    f.file_salt
+    f.file_salt,
+    f.text_content,
+    f.text_note
 FROM notes n
 JOIN file_notes f ON f.note_id = n.note_id
 WHERE n.category_id = 5;
@@ -875,13 +922,15 @@ BEGIN
     INSERT INTO notes (title, category_id)
     VALUES (NEW.title, 5);
 
-    INSERT INTO file_notes (note_id, encrypted_filename, mime_type, size_bytes, file_salt)
+    INSERT INTO file_notes (note_id, encrypted_filename, mime_type, size_bytes, file_salt, text_content, text_note)
     VALUES (
         last_insert_rowid(),
         NEW.encrypted_filename,
         NEW.mime_type,
         COALESCE(NEW.size_bytes, 0),
-        NEW.file_salt
+        NEW.file_salt,
+        NEW.text_content,
+        NEW.text_note
     );
 END;
 
