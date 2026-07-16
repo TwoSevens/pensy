@@ -17,10 +17,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(Mutex::new(None::<vault::VaultState>))
         .invoke_handler(tauri::generate_handler![
-            data_manager::open_vault,
-            data_manager::list_vaults,
-            data_manager::get_current_vault_path,
-            data_manager::is_vault_loaded,
+            data_manager::commands::open_vault,
+            data_manager::commands::list_vaults,
+            data_manager::commands::get_current_vault_path,
+            data_manager::commands::is_vault_loaded,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
