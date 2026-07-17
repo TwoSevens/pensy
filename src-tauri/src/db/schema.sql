@@ -19,11 +19,11 @@ CREATE TABLE user_settings (
 -- ==================================================
 
 CREATE TABLE note_category (
-    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
 );
 
-INSERT INTO note_category (category)
+INSERT INTO note_category (name)
 VALUES
     ('journal'),
     ('people'),
@@ -32,7 +32,7 @@ VALUES
     ('files');
 
 CREATE TABLE tags (
-    tag_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT UNIQUE
 );
 
@@ -45,7 +45,7 @@ CREATE TABLE notes (
         DEFAULT (DATETIME('now')),
     category_id INTEGER,
     FOREIGN KEY (category_id)
-        REFERENCES note_category(category_id)
+        REFERENCES note_category(id)
 );
 
 CREATE TABLE notes_tags (
@@ -56,7 +56,7 @@ CREATE TABLE notes_tags (
         REFERENCES notes(note_id)
         ON DELETE CASCADE,
     FOREIGN KEY (tag_id)
-        REFERENCES tags(tag_id)
+        REFERENCES tags(id)
         ON DELETE CASCADE
 );
 
@@ -171,7 +171,7 @@ CREATE TABLE people_relations (
 -- ==================================================
 
 CREATE TABLE drafts (
-    draft_id INTEGER PRIMARY KEY,  -- explicit, so parts can reference it
+    id INTEGER PRIMARY KEY,  -- explicit, so parts can reference it
     note_id  INTEGER,
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
@@ -182,16 +182,16 @@ CREATE TABLE parts (
     draft_id INTEGER,
     content  TEXT,
     FOREIGN KEY (draft_id)
-        REFERENCES drafts(draft_id)
+        REFERENCES drafts(id)
         ON DELETE CASCADE
 );
 
 CREATE TABLE writing_category (
-    category_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    label TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT
 );
 
-INSERT INTO writing_category (label)
+INSERT INTO writing_category (name)
 VALUES
     -- Fiction
     ("Story"),
@@ -274,7 +274,7 @@ VALUES
     ("Prophecy");
 
 CREATE TABLE writing_status (
-    status_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT
 );
 
@@ -291,9 +291,9 @@ CREATE TABLE writings_notes (
     category_id INTEGER DEFAULT NULL,
     status_id INTEGER DEFAULT NULL,
     FOREIGN KEY (category_id)
-        REFERENCES writing_category(category_id),
+        REFERENCES writing_category(id),
     FOREIGN KEY (status_id)
-        REFERENCES writing_status(status_id),
+        REFERENCES writing_status(id),
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
@@ -304,7 +304,7 @@ CREATE TABLE writings_notes (
 -- ==================================================
 
 CREATE TABLE knowledge_status (
-    status_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT
 );
 
@@ -319,7 +319,7 @@ VALUES
     ("Dropped");
 
 CREATE TABLE knowledge_subject (
-    subject_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     label TEXT
 );
 
@@ -416,9 +416,9 @@ CREATE TABLE knowledge_notes (
     subject_id INTEGER DEFAULT NULL,
     content TEXT DEFAULT NULL,
     FOREIGN KEY (status_id)
-        REFERENCES knowledge_status(status_id),
+        REFERENCES knowledge_status(id),
     FOREIGN KEY (subject_id)
-        REFERENCES knowledge_subject(subject_id),
+        REFERENCES knowledge_subject(id),
     FOREIGN KEY (note_id)
         REFERENCES notes(note_id)
         ON DELETE CASCADE
@@ -693,7 +693,7 @@ BEGIN
     INSERT INTO content_search (note_id, note_content)
     SELECT drafts.note_id, NEW.content
     FROM drafts
-    WHERE drafts.draft_id = NEW.draft_id
+    WHERE drafts.id = NEW.draft_id
       AND NEW.content IS NOT NULL;
 END;
 
@@ -702,14 +702,14 @@ AFTER UPDATE OF content ON parts
 BEGIN
     -- Delete the old content using a subquery to find the note_id
     DELETE FROM content_search
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id)
+    WHERE note_id = (SELECT note_id FROM drafts WHERE id = OLD.draft_id)
       AND note_content = OLD.content;
 
     -- Insert the new content
     INSERT INTO content_search (note_id, note_content)
     SELECT drafts.note_id, NEW.content
     FROM drafts
-    WHERE drafts.draft_id = NEW.draft_id
+    WHERE drafts.id = NEW.draft_id
       AND NEW.content IS NOT NULL;
 END;
 
@@ -717,7 +717,7 @@ CREATE TRIGGER fts_parts_after_delete
 AFTER DELETE ON parts
 BEGIN
     DELETE FROM content_search
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id)
+    WHERE note_id = (SELECT note_id FROM drafts WHERE id = OLD.draft_id)
       AND note_content = OLD.content;
 END;
 
@@ -1167,19 +1167,19 @@ CREATE TRIGGER updated_at_parts_insert
 AFTER INSERT ON parts
 BEGIN
     UPDATE notes SET updated_at = DATETIME('now')
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = NEW.draft_id);
+    WHERE note_id = (SELECT note_id FROM drafts WHERE id = NEW.draft_id);
 END;
 
 CREATE TRIGGER updated_at_parts_update
 AFTER UPDATE OF content ON parts
 BEGIN
     UPDATE notes SET updated_at = DATETIME('now')
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = NEW.draft_id);
+    WHERE note_id = (SELECT note_id FROM drafts WHERE id = NEW.draft_id);
 END;
 
 CREATE TRIGGER updated_at_parts_delete
 AFTER DELETE ON parts
 BEGIN
     UPDATE notes SET updated_at = DATETIME('now')
-    WHERE note_id = (SELECT note_id FROM drafts WHERE draft_id = OLD.draft_id);
+    WHERE note_id = (SELECT note_id FROM drafts WHERE id = OLD.draft_id);
 END;
