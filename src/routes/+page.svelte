@@ -1,222 +1,121 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { open } from "@tauri-apps/plugin-dialog";
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { open_vault, vault_state } from "../lib/vault.svelte";
 
-  let vaults: string[] = $state([]);
-  let selectedVault = $state("");
-  let customPath = $state("");
-  let password = $state("");
-  let error = $state("");
-  let loading = $state(false);
-  let vaultReady = $state(false);
+  const NEW_VAULT = "__new_vault__";
 
-  async function loadVaults() {
+  let vault_list: string[] = $state([]);
+  let selected: string = $state("");
+  let password: string = $state("");
+
+  onMount(async () => {
     try {
-      vaults = await invoke("list_vaults");
+      vault_list = await invoke<string[]>("list_vaults");
     } catch (e) {
-      error = String(e);
+      vault_state.error = String(e);
+      vault_list = [];
     }
-  }
+  });
 
-  async function openVault() {
-    const path = customPath.trim() || selectedVault;
-    if (!path) {
-      error = "Select a vault or enter a path.";
-      return;
-    }
-    if (!password) {
-      error = "Enter a password.";
+  async function handleChange(event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+
+    if (target.value !== NEW_VAULT) {
+      selected = target.value;
       return;
     }
 
-    error = "";
-    loading = true;
+    // Revert right away so the sentinel never sticks if the dialog is cancelled
+    target.value = selected;
 
     try {
-      await invoke("open_vault", { path, passphrase: password });
+      const path = await open({
+        directory: true,
+        multiple: false,
+        title: "Open or create a vault",
+      });
 
-      const ready = await invoke<boolean>("is_vault_loaded");
-      if (ready) {
-        vaultReady = true;
-      } else {
-        error = "Vault did not initialize.";
+      if (typeof path !== "string") return; // user cancelled
+
+      if (!vault_list.includes(path)) {
+        vault_list = [...vault_list, path];
       }
+      selected = path;
     } catch (e) {
-      error = String(e);
-    } finally {
-      loading = false;
+      vault_state.error = String(e);
     }
   }
-
-  loadVaults();
 </script>
 
-{#if vaultReady}
-  <main class="container">
-    <h1>Vault loaded</h1>
-  </main>
-{:else}
-  <main class="container">
-    <h1>Open Vault</h1>
+<div class="screen">
+  <div class="vault-selector">
+    <h2>Select Vault</h2>
 
-    {#if vaults.length > 0}
-      <div class="vault-list">
-        {#each vaults as vault}
-          <button
-            class="vault-item"
-            class:selected={selectedVault === vault && !customPath}
-            onclick={() => { selectedVault = vault; customPath = ""; }}
-          >
-            {vault}
-          </button>
-        {/each}
-      </div>
-    {/if}
+    <select value={selected} onchange={handleChange}>
+      <option value="" disabled>Choose a vault…</option>
+      {#each vault_list as vault (vault)}
+        <option value={vault}>{vault}</option>
+      {/each}
+      <option value={NEW_VAULT}>Open/New Vault…</option>
+    </select>
 
-    <form onsubmit={(e) => { e.preventDefault(); openVault(); }}>
-      <input
-        type="text"
-        placeholder="Vault path..."
-        bind:value={customPath}
-      />
-      <input
-        type="password"
-        placeholder="Password..."
-        bind:value={password}
-      />
-      <button type="submit" disabled={loading}>
-        {loading ? "Opening..." : "Open"}
-      </button>
-    </form>
+    <input
+      bind:value={password}
+      type="password"
+      placeholder="Enter password…"
+    />
 
-    {#if error}
-      <p class="error">{error}</p>
-    {/if}
-  </main>
-{/if}
+    <button
+      disabled={!selected || !password}
+      onclick={async () => {
+        await open_vault(selected, password);
+        if (vault_state.loaded) {
+          goto("/vault");
+        }
+      }}>Open Vault</button
+    >
+  </div>
+
+  {#if vault_state.error}
+    <p class="error">{vault_state.error}</p>
+  {/if}
+</div>
 
 <style>
-  :root {
-    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 400;
-    color: #0f0f0f;
-    background-color: #f6f6f6;
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-text-size-adjust: 100%;
+  :global(body) {
+    margin: 0;
+    padding: 0;
   }
 
-  .container {
-    margin: 0;
-    padding-top: 10vh;
+  .screen {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .vault-selector {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
+    gap: 1rem;
+    border: solid 1px #ccc;
+    padding: 1rem;
   }
 
-  .vault-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
-    width: 100%;
-    max-width: 400px;
+  select {
+    width: 20vw;
   }
-
-  .vault-item {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    color: #0f0f0f;
-    background-color: #ffffff;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-    cursor: pointer;
-    text-align: left;
-    transition: border-color 0.25s, background-color 0.25s;
-    word-break: break-all;
-  }
-
-  .vault-item:hover {
-    border-color: #396cd8;
-  }
-
-  .vault-item.selected {
-    border-color: #396cd8;
-    background-color: #e8e8e8;
-  }
-
-  form {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  input, button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    color: #0f0f0f;
-    background-color: #ffffff;
-    transition: border-color 0.25s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-    outline: none;
-  }
-
-  input {
-    min-width: 200px;
+  .error {
+    color: crimson;
   }
 
   button {
-    cursor: pointer;
-  }
-
-  button:hover {
-    border-color: #396cd8;
-  }
-
-  button:active {
-    border-color: #396cd8;
-    background-color: #e8e8e8;
-  }
-
-  button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .error {
-    color: #e74c3c;
-    margin-top: 1rem;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color: #f6f6f6;
-      background-color: #2f2f2f;
-    }
-
-    .vault-item, input, button {
-      color: #ffffff;
-      background-color: #0f0f0f98;
-    }
-
-    .vault-item.selected {
-      background-color: #0f0f0f69;
-    }
-
-    button:active {
-      background-color: #0f0f0f69;
-    }
+    width: 30%;
   }
 </style>

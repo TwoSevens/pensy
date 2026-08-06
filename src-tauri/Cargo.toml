@@ -31,3 +31,5 @@ sha2 = "0.11.0" # Provides SHA_256 algo needed by hkdf
 hkdf = "0.13.0" # Derives child keys from master key
 aes-gcm = "0.11.0" # Encrypts and decrypts files
 rand_os = "0.2.2" # I need to check if this is actually secure
+tauri-plugin-dialog = "2.7.2"
+tauri-plugin-log = "2"

@@ -6,9 +6,9 @@ pkgs.mkShell {
   nativeBuildInputs = with pkgs; [
     pkg-config
     wrapGAppsHook4
-    cargo 
+    cargo
     cargo-tauri
-    nodejs 
+    nodejs
     pnpm
     rustc # Needed for dev server (pnpm tauri dev)
   ];
