@@ -1,0 +1,269 @@
+/* ==========================================================================
+   Pensy design system — "Seamless"
+
+   No cards, no pills, no colour. One continuous surface; separation comes
+   from a single hairline and a half-step of tone. Inputs are underlines,
+   not boxes. Strictly greyscale — the only accent is brightness.
+
+   Tokens live here; layout lives in each component's scoped <style>.
+   ========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  /* ponytail: ttf, not woff2 (~2x the bytes) — no woff2 tooling on this
+     machine and it is a desktop bundle, not a page load. Convert if the
+     bundle size ever matters. */
+  src: url("/fonts/InterVariable.ttf") format("truetype-variations");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  --bg: #fbfbfa;
+  --alt: #f5f5f3;
+  --hi: #e6e6e2;
+  --line: #0000001a;
+  --text: #1b1b19;
+  --muted: #5e5e5a;
+  --faint: #9a9a93;
+  --danger: #a8352b;
+
+  --topbar-h: 46px;
+  --rail-w: 46px;
+  --panel-w: 270px;
+
+  --font-ui: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* ponytail: follows the OS only. Add :root[data-theme="dark"] with the same
+   block, and :root:not([data-theme="light"]) here, once the settings screen
+   can actually write the preference to user_settings. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a19;
+    --alt: #1f1f1e;
+    --hi: #333331;
+    --line: #ffffff17;
+    --text: #e6e6e2;
+    --muted: #909089;
+    --faint: #61615c;
+    --danger: #ff7f73;
+  }
+}
+
+/* --- defaults, overridden so nothing looks like a web page ---------------- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  font-synthesis-weight: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+input::placeholder {
+  color: var(--faint);
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 1px solid var(--text);
+  outline-offset: 2px;
+}
+
+/* text fields show focus on their own underline — never boxed */
+input:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
+::selection {
+  background: var(--hi);
+}
+
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+  padding: 0;
+}
+
+ul {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hi) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hi);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* --- shared primitives ---------------------------------------------------
+   Only what is genuinely used by more than one component lives here.
+   ------------------------------------------------------------------------ */
+
+/* Icon button. Carries no chrome until hovered; the label is a ::after,
+   so there is no tooltip library and no JS positioning. */
+.icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  color: var(--faint);
+  transition: color 0.13s;
+}
+
+.icon-btn:hover {
+  color: var(--text);
+}
+
+.icon-btn.active {
+  color: var(--text);
+}
+
+.icon-btn::after {
+  content: attr(data-label);
+  position: absolute;
+  z-index: 90;
+  padding: 3px 7px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--bg);
+  background: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s;
+}
+
+.icon-btn:hover::after,
+.icon-btn:focus-visible::after {
+  opacity: 1;
+  transition-delay: 0.35s;
+}
+
+.tip-right::after {
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tip-down::after {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tip-left::after {
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* Underline field. Wraps an input or select; focus thickens the rule to 2px
+   rather than drawing a box around it. */
+.field {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  border-bottom: 1px solid var(--line);
+  transition:
+    border-color 0.14s,
+    box-shadow 0.14s;
+}
+
+.field:focus-within {
+  border-bottom-color: var(--text);
+  box-shadow: 0 1px 0 var(--text);
+}
+
+.field :is(input, select) {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  user-select: text;
+}
+
+.field select {
+  cursor: pointer;
+}
+
+.field select option {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Small uppercase label used for form fields and list group headers. */
+.overline {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* Shown wherever a list or pane has nothing in it yet. */
+.empty {
+  padding: 28px 14px;
+  font-size: 12.5px;
+  color: var(--faint);
+  text-align: center;
+}

@@ -4,12 +4,22 @@
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
   import { open_vault, vault_state } from "../lib/vault.svelte";
+  import {
+    ChevronDown,
+    CircleAlert,
+    Eye,
+    EyeOff,
+    Lock,
+    LoaderCircle,
+  } from "@lucide/svelte";
 
   const NEW_VAULT = "__new_vault__";
 
   let vault_list: string[] = $state([]);
   let selected: string = $state("");
   let password: string = $state("");
+  let show_password = $state(false);
+  let unlocking = $state(false);
 
   onMount(async () => {
     try {
@@ -48,74 +58,169 @@
       vault_state.error = String(e);
     }
   }
+
+  async function unlock() {
+    if (!selected || !password || unlocking) return;
+
+    unlocking = true;
+    try {
+      await open_vault(selected, password);
+      if (vault_state.loaded) {
+        goto("/vault");
+      }
+    } finally {
+      unlocking = false;
+    }
+  }
+
+  // Show the folder name; the full path is what we actually pass to the backend.
+  function vault_name(path: string): string {
+    return path.split(/[/\\]/).filter(Boolean).pop() ?? path;
+  }
 </script>
 
-<div class="screen">
-  <div class="vault-selector">
-    <h2>Select Vault</h2>
+<main class="screen">
+  <form
+    class="card"
+    onsubmit={(e) => {
+      e.preventDefault();
+      unlock();
+    }}
+  >
+    <h1>Pensy</h1>
 
-    <select value={selected} onchange={handleChange}>
-      <option value="" disabled>Choose a vault…</option>
-      {#each vault_list as vault (vault)}
-        <option value={vault}>{vault}</option>
-      {/each}
-      <option value={NEW_VAULT}>Open/New Vault…</option>
-    </select>
+    <div class="group">
+      <label class="overline" for="vault">Vault</label>
+      <div class="field">
+        <select id="vault" value={selected} onchange={handleChange}>
+          <option value="" disabled>Choose a vault…</option>
+          {#each vault_list as vault (vault)}
+            <option value={vault}>{vault_name(vault)}</option>
+          {/each}
+          <option value={NEW_VAULT}>Open or create a vault…</option>
+        </select>
+        <ChevronDown size="15" />
+      </div>
+    </div>
 
-    <input
-      bind:value={password}
-      type="password"
-      placeholder="Enter password…"
-    />
+    <div class="group">
+      <label class="overline" for="password">Password</label>
+      <div class="field">
+        <!-- svelte-ignore a11y_autofocus -->
+        <input
+          id="password"
+          type={show_password ? "text" : "password"}
+          bind:value={password}
+          placeholder="Enter password…"
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="icon-btn tip-left"
+          data-label={show_password ? "Hide password" : "Show password"}
+          aria-label={show_password ? "Hide password" : "Show password"}
+          onclick={() => (show_password = !show_password)}
+        >
+          {#if show_password}
+            <EyeOff size="15" />
+          {:else}
+            <Eye size="15" />
+          {/if}
+        </button>
+      </div>
+    </div>
 
-    <button
-      disabled={!selected || !password}
-      onclick={async () => {
-        await open_vault(selected, password);
-        if (vault_state.loaded) {
-          goto("/vault");
-        }
-      }}>Open Vault</button
-    >
-  </div>
+    {#if vault_state.error}
+      <p class="error">
+        <CircleAlert size="14" />
+        <span>{vault_state.error}</span>
+      </p>
+    {/if}
 
-  {#if vault_state.error}
-    <p class="error">{vault_state.error}</p>
-  {/if}
-</div>
+    <button class="unlock" type="submit" disabled={!selected || !password || unlocking}>
+      {#if unlocking}
+        <LoaderCircle size="15" class="spin" />
+        <span>Deriving key…</span>
+      {:else}
+        <Lock size="15" />
+        <span>Unlock</span>
+      {/if}
+    </button>
+  </form>
+</main>
 
 <style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-  }
-
   .screen {
-    width: 100vw;
     height: 100vh;
+    display: grid;
+    place-items: center;
+  }
+
+  /* no card — the form simply sits on the page */
+  .card {
+    width: 300px;
+  }
+
+  h1 {
+    font-size: 30px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 42px;
+  }
+
+  .group {
+    margin-bottom: 26px;
+  }
+
+  .overline {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .field :global(svg) {
+    color: var(--faint);
+  }
+
+  .unlock {
+    width: 100%;
+    height: 40px;
+    margin-top: 10px;
     display: flex;
-    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--text);
+    transition: opacity 0.13s;
   }
 
-  .vault-selector {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    border: solid 1px #ccc;
-    padding: 1rem;
+  .unlock:hover:not(:disabled) {
+    opacity: 0.85;
   }
 
-  select {
-    width: 20vw;
+  .unlock :global(.spin) {
+    animation: spin 0.8s linear infinite;
   }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
   .error {
-    color: crimson;
+    display: flex;
+    gap: 7px;
+    margin-top: 16px;
+    font-size: 12.5px;
+    color: var(--danger);
   }
 
-  button {
-    width: 30%;
+  .error :global(svg) {
+    flex: none;
+    margin-top: 3px;
   }
 </style>
