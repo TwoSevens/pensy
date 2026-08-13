@@ -137,7 +137,11 @@
       </p>
     {/if}
 
-    <button class="unlock" type="submit" disabled={!selected || !password || unlocking}>
+    <button
+      class="unlock"
+      type="submit"
+      disabled={!selected || !password || unlocking}
+    >
       {#if unlocking}
         <LoaderCircle size="15" class="spin" />
         <span>Deriving key…</span>

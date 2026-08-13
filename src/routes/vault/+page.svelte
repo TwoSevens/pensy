@@ -12,6 +12,7 @@
     PanelLeftClose,
     Search,
     Settings,
+    FolderTree,
   } from "@lucide/svelte";
 
   // The five rows seeded into note_category.
@@ -147,16 +148,28 @@
 
     <!-- set apart from the categories: these are views, not note types -->
     <div class="rail-group rail-middle">
-      <button class="icon-btn tip-right" data-label="Calendar" aria-label="Calendar">
+      <button
+        class="icon-btn tip-right"
+        data-label="Calendar"
+        aria-label="Calendar"
+      >
         <Calendar size="17" />
       </button>
-      <button class="icon-btn tip-right" data-label="Statistics" aria-label="Statistics">
+      <button
+        class="icon-btn tip-right"
+        data-label="Statistics"
+        aria-label="Statistics"
+      >
         <ChartColumn size="17" />
       </button>
     </div>
 
     <div class="rail-group">
-      <button class="icon-btn tip-right" data-label="Settings" aria-label="Settings">
+      <button
+        class="icon-btn tip-right"
+        data-label="Settings"
+        aria-label="Settings"
+      >
         <Settings size="17" />
       </button>
     </div>
@@ -174,14 +187,18 @@
               aria-label="Search notes"
             />
           </div>
-          <button class="icon-btn tip-down search-btn" data-label="Search" aria-label="Search">
+          <button
+            class="icon-btn tip-down search-btn"
+            data-label="Search"
+            aria-label="Search"
+          >
             <Search size="15" />
           </button>
         </div>
 
         <div class="combo" bind:this={combo_el}>
           <div class="field combo-field">
-            <span class="overline">Group</span>
+            <span class="overline"><FolderTree /></span>
             <input
               bind:this={combo_input}
               bind:value={combo_query}
@@ -192,7 +209,9 @@
               aria-expanded={combo_open}
               aria-controls="group-options"
               aria-autocomplete="list"
-              aria-activedescendant={cursor >= 0 ? `group-option-${cursor}` : undefined}
+              aria-activedescendant={cursor >= 0
+                ? `group-option-${cursor}`
+                : undefined}
               aria-label="Group notes by"
               onfocus={open_combo}
               oninput={() => {
@@ -222,7 +241,12 @@
           </div>
 
           {#if combo_open}
-            <ul class="combo-list" id="group-options" role="listbox" aria-label="Group by field">
+            <ul
+              class="combo-list"
+              id="group-options"
+              role="listbox"
+              aria-label="Group by field"
+            >
               {#each options as option, i (option)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <li
