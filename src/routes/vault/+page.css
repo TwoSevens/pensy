@@ -1,0 +1,190 @@
+.app {
+  --panel-offset: 0px;
+  height: 100vh;
+}
+
+.app.panel-open {
+  --panel-offset: var(--panel-w);
+}
+
+/* topbar spans the whole window; tabs are text with a rule under the active */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--topbar-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  z-index: 30;
+}
+
+.tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  margin-left: var(--panel-offset);
+  overflow-x: auto;
+  scrollbar-width: none;
+  transition: margin-left 0.15s;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 210px;
+  padding: 0 16px;
+  font-size: 13px;
+  color: var(--faint);
+  white-space: nowrap;
+  transition: color 0.13s;
+}
+
+.tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab:hover {
+  color: var(--muted);
+}
+
+.tab.active {
+  color: var(--text);
+}
+
+/* the rule is the only marker — no fill, no border, no pill */
+.tab.active::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--text);
+}
+
+.rail {
+  position: fixed;
+  top: var(--topbar-h);
+  bottom: 0;
+  left: 0;
+  width: var(--rail-w);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-right: 1px solid var(--line);
+  z-index: 20;
+}
+
+.rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rail-middle {
+  position: relative;
+  padding: 20px 0;
+}
+
+.rail-middle::before,
+.rail-middle::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  height: 1px;
+  background: var(--line);
+}
+
+.rail-middle::before {
+  top: 0;
+}
+
+.rail-middle::after {
+  bottom: 0;
+}
+
+/* the sidebar is the same surface as the editor — one hairline divides them */
+.panel {
+  position: fixed;
+  top: var(--topbar-h);
+  bottom: 0;
+  left: var(--rail-w);
+  width: var(--panel-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--alt);
+  border-right: 1px solid var(--line);
+  z-index: 20;
+}
+
+.panel-head {
+  flex: none;
+  padding: 16px 14px 12px;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.search .field {
+  flex: 1;
+  height: 28px;
+}
+
+.search-btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.note-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+.screen {
+  position: fixed;
+  top: var(--topbar-h);
+  bottom: 0;
+  right: 0;
+  left: calc(var(--rail-w) + var(--panel-offset));
+  overflow-y: auto;
+  transition: left 0.15s;
+  /* centres the empty state; swap for `place-items: start stretch` once a
+       note actually renders here, or tall content will clip at the top */
+  display: grid;
+  place-items: center;
+}
+
+/* bottom right only, hugging its content */
+.status {
+  position: fixed;
+  right: 16px;
+  bottom: 10px;
+  z-index: 40;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--faint);
+}

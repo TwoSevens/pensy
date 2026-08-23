@@ -24,8 +24,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.39.0", features = ["bundled-sqlcipher"] }
 hex = "0.4.3"
-
-# Security packages
 argon2 = "0.5.3" # Used to derive master key from password and salt
 sha2 = "0.11.0" # Provides SHA_256 algo needed by hkdf
 hkdf = "0.13.0" # Derives child keys from master key

@@ -1,3 +1,7 @@
+pub mod commands;
+pub mod models;
+pub mod repositories;
+
 use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use hex;
