@@ -21,8 +21,6 @@
     FolderTree,
     Plus,
   } from "@lucide/svelte";
-  import type { notStrictEqual } from "node:assert";
-  import { title } from "node:process";
 
   // The five rows seeded into note_category.
   const CATEGORIES = [
@@ -48,9 +46,9 @@
     active_category = id;
   }
 
-  async function new_note(title: string) {
+  async function new_note() {
     let note = await create_note(
-      title,
+      staging_title,
       string_to_note_category(active_category) as NoteCategory,
     );
   }
@@ -160,7 +158,7 @@
   <main class="screen">
     {#if staging_mode}
       <input class="field" type="text" bind:value={staging_title} />
-      <button class="field" onclick={() => new_note(title)}>Confirm</button>
+      <button class="field" onclick={() => new_note()}>Confirm</button>
     {/if}
   </main>
 
