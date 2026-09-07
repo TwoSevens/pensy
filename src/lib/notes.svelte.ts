@@ -15,7 +15,7 @@ export function string_to_note_category(text: string): NoteCategory | undefined 
         case "People":
             return NoteCategory.People;
         case "writings":
-            return NoteCategory.People;
+            return NoteCategory.Writings;
         case "knowledge":
             return NoteCategory.Knowledge;
         case "Files":
