@@ -222,7 +222,7 @@
   background: var(--line);
 }
 
-.screen {
+.vault-screen {
   position: fixed;
   top: var(--topbar-h);
   bottom: 0;

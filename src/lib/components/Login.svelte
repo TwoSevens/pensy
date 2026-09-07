@@ -75,7 +75,7 @@
   }
 </script>
 
-<main class="screen">
+<main class="login-screen">
   <form
     class="card"
     onsubmit={(e) => {
@@ -150,7 +150,7 @@
 </main>
 
 <style>
-  .screen {
+  .login-screen {
     height: 100vh;
     display: grid;
     place-items: center;

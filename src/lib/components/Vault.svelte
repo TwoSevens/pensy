@@ -419,7 +419,7 @@
   {/if}
 
   <main
-    class="screen"
+    class="vault-screen"
     onclick={(event) => {
       if (staging_mode && event.target !== staging_title_input) {
         void commit_staged_note();
