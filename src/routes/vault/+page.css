@@ -61,6 +61,12 @@
   color: var(--muted);
 }
 
+.new-tab {
+  flex: none;
+  width: 46px;
+  padding: 0;
+}
+
 .tab.active {
   color: var(--text);
 }
@@ -168,14 +174,19 @@
   width: 100%;
   padding: 8px 10px;
   overflow: hidden;
-  color: var(--text);
+  color: var(--muted);
   text-align: left;
   white-space: nowrap;
   text-overflow: ellipsis;
   border-radius: 4px;
+  transition:
+    color 0.13s,
+    background 0.13s;
 }
 
-.note-item:hover {
+.note-item:hover,
+.note-item.active {
+  color: var(--text);
   background: var(--line);
 }
 
@@ -191,6 +202,47 @@
        note actually renders here, or tall content will clip at the top */
   display: grid;
   place-items: center;
+}
+
+.staging-note {
+  width: min(720px, calc(100% - 64px));
+  align-self: start;
+  margin-top: clamp(72px, 13vh, 132px);
+}
+
+.staging-kicker {
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.staging-title {
+  display: block;
+  width: 100%;
+  padding: 0 0 13px;
+  font-size: clamp(28px, 4vw, 46px);
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  color: var(--text);
+  border-bottom: 1px solid var(--line);
+  transition:
+    border-color 0.14s,
+    box-shadow 0.14s;
+  user-select: text;
+}
+
+.staging-title::placeholder {
+  color: var(--faint);
+  opacity: 0.72;
+}
+
+.staging-title:focus {
+  border-bottom-color: var(--text);
+  box-shadow: 0 1px 0 var(--text);
 }
 
 /* bottom right only, hugging its content */

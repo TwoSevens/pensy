@@ -19,7 +19,6 @@
     PanelLeftClose,
     Search,
     Settings,
-    FolderTree,
     Plus,
   } from "@lucide/svelte";
 
@@ -43,9 +42,30 @@
 
   let staging_mode = $state(false);
   let staging_title = $state("");
+  let staging_title_input = $state<HTMLInputElement>();
+  let creating_note = $state(false);
 
   function select_category(id: (typeof CATEGORIES)[number]["id"]) {
     active_category = id;
+  }
+
+  function stage_new_note() {
+    if (creating_note) {
+      return;
+    }
+
+    tab_status = "";
+    staging_title = "";
+    staging_mode = true;
+  }
+
+  function cancel_staged_note() {
+    if (creating_note) {
+      return;
+    }
+
+    staging_mode = false;
+    staging_title = "";
   }
 
   async function refresh_notes() {
@@ -63,21 +83,65 @@
     void refresh_notes();
   });
 
-  async function new_note() {
-    const category = string_to_note_category(active_category);
-    if (category === undefined) {
+  $effect(() => {
+    if (staging_mode && staging_title_input) {
+      staging_title_input.focus();
+    }
+  });
+
+  function open_note(note: Note) {
+    const existing_tab = open_tabs.findIndex((tab) => tab.noteId === note.noteId);
+    if (existing_tab >= 0) {
+      focused_tab = existing_tab;
       return;
     }
 
-    const note = await create_note(staging_title, category);
+    open_tabs.push(note);
+    focused_tab = open_tabs.length - 1;
+    tab_status = "";
+  }
+
+  async function commit_staged_note() {
+    if (creating_note) {
+      return;
+    }
+
+    const title = staging_title.trim();
+    if (title.length === 0) {
+      cancel_staged_note();
+      return;
+    }
+
+    const category = string_to_note_category(active_category);
+    if (category === undefined) {
+      cancel_staged_note();
+      return;
+    }
+
+    creating_note = true;
+    const note = await create_note(title, category);
+    creating_note = false;
+
     if (note instanceof Error) {
       tab_status = note.message;
+      staging_title_input?.focus();
       return;
     }
 
     staging_mode = false;
     staging_title = "";
+    open_note(note);
     await refresh_notes();
+  }
+
+  function handle_staging_keydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void commit_staged_note();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancel_staged_note();
+    }
   }
 </script>
 
@@ -97,14 +161,26 @@
       {/if}
     </button>
 
-    <div class="tabs">
+    <div class="tabs" role="tablist" aria-label="Open notes">
       {#each open_tabs as tab, index}
-        <button class="tab" class:active={index === focused_tab}>
+        <button
+          class="tab"
+          class:active={index === focused_tab}
+          role="tab"
+          aria-selected={index === focused_tab}
+          aria-label={`Open ${tab.title}`}
+          onclick={() => (focused_tab = index)}
+        >
           <span>{tab.title}</span>
         </button>
       {/each}
-      <button class="tab" onclick={() => (staging_mode = true)}>
-        <Plus />
+      <button
+        class="tab new-tab"
+        type="button"
+        aria-label="New note"
+        onclick={stage_new_note}
+      >
+        <Plus size="17" />
       </button>
     </div>
   </header>
@@ -180,7 +256,12 @@
             <p class="empty">No notes</p>
           {:else}
             {#each notes as note (note.noteId)}
-              <button class="note-item" type="button">
+              <button
+                class="note-item"
+                class:active={open_tabs[focused_tab]?.noteId === note.noteId}
+                type="button"
+                onclick={() => open_note(note)}
+              >
                 <span>{note.title}</span>
               </button>
             {/each}
@@ -190,14 +271,33 @@
     </aside>
   {/if}
 
-  <main class="screen">
+  <main
+    class="screen"
+    onclick={(event) => {
+      if (staging_mode && event.target !== staging_title_input) {
+        void commit_staged_note();
+      }
+    }}
+  >
     {#if staging_mode}
-      <input class="field" type="text" bind:value={staging_title} />
-      <button class="field" onclick={() => new_note()}>Confirm</button>
+      <div class="staging-note">
+        <p class="staging-kicker">New note</p>
+        <input
+          class="staging-title"
+          bind:this={staging_title_input}
+          bind:value={staging_title}
+          type="text"
+          placeholder="Untitled note"
+          aria-label="Note title"
+          autocomplete="off"
+          onkeydown={handle_staging_keydown}
+          onblur={() => void commit_staged_note()}
+        />
+      </div>
     {/if}
   </main>
 
-  {#if focused_tab && tab_status}
+  {#if tab_status}
     <div class="status">{tab_status}</div>
   {/if}
 </div>
