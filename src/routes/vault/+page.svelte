@@ -6,6 +6,7 @@
     string_to_note_category,
     create_note,
     get_notes,
+    update_note_title,
   } from "../../lib/notes.svelte";
   import {
     Calendar,
@@ -20,6 +21,7 @@
     Search,
     Settings,
     Plus,
+    X,
   } from "@lucide/svelte";
 
   // The five rows seeded into note_category.
@@ -44,6 +46,11 @@
   let staging_title = $state("");
   let staging_title_input = $state<HTMLInputElement>();
   let creating_note = $state(false);
+
+  let editing_title = $state("");
+  let original_title = $state("");
+  let title_input = $state<HTMLInputElement>();
+  let saving_title = $state(false);
 
   function select_category(id: (typeof CATEGORIES)[number]["id"]) {
     active_category = id;
@@ -89,16 +96,143 @@
     }
   });
 
+  function sync_title_editor() {
+    const selected_note = open_tabs[focused_tab];
+    editing_title = selected_note?.title ?? "";
+    original_title = selected_note?.title ?? "";
+  }
+
+  function replace_note_title(noteId: number, title: string) {
+    const open_tab = open_tabs.find((tab) => tab.noteId === noteId);
+    if (open_tab) {
+      open_tab.title = title;
+    }
+
+    const list_note = notes.find((note) => note.noteId === noteId);
+    if (list_note) {
+      list_note.title = title;
+    }
+  }
+
   function open_note(note: Note) {
     const existing_tab = open_tabs.findIndex((tab) => tab.noteId === note.noteId);
     if (existing_tab >= 0) {
       focused_tab = existing_tab;
+      sync_title_editor();
+      tab_status = "";
       return;
     }
 
-    open_tabs.push(note);
+    open_tabs.push({ ...note });
     focused_tab = open_tabs.length - 1;
+    sync_title_editor();
     tab_status = "";
+  }
+
+  function select_tab(index: number) {
+    if (index < 0 || index >= open_tabs.length) {
+      return;
+    }
+
+    focused_tab = index;
+    sync_title_editor();
+    tab_status = "";
+  }
+
+  function close_tab(index: number) {
+    if (index < 0 || index >= open_tabs.length) {
+      return;
+    }
+
+    open_tabs.splice(index, 1);
+    if (open_tabs.length === 0) {
+      focused_tab = 0;
+      editing_title = "";
+      original_title = "";
+      return;
+    }
+
+    if (index < focused_tab) {
+      focused_tab -= 1;
+    } else if (index === focused_tab) {
+      focused_tab = Math.min(focused_tab, open_tabs.length - 1);
+    }
+
+    sync_title_editor();
+  }
+
+  function handle_title_input(event: Event) {
+    const title = (event.currentTarget as HTMLInputElement).value;
+    editing_title = title;
+
+    const selected_note = open_tabs[focused_tab];
+    if (selected_note) {
+      replace_note_title(selected_note.noteId, title);
+    }
+  }
+
+  function cancel_title_edit() {
+    const selected_note = open_tabs[focused_tab];
+    if (selected_note) {
+      replace_note_title(selected_note.noteId, original_title);
+    }
+
+    editing_title = original_title;
+  }
+
+  async function save_title() {
+    if (saving_title) {
+      return;
+    }
+
+    const selected_note = open_tabs[focused_tab];
+    if (!selected_note) {
+      return;
+    }
+
+    const noteId = selected_note.noteId;
+    const title = editing_title.trim();
+    if (title.length === 0) {
+      cancel_title_edit();
+      return;
+    }
+
+    if (title === original_title) {
+      return;
+    }
+
+    replace_note_title(noteId, title);
+    editing_title = title;
+    saving_title = true;
+    const result = await update_note_title(noteId, title);
+    saving_title = false;
+
+    if (result instanceof Error) {
+      replace_note_title(noteId, original_title);
+      if (open_tabs[focused_tab]?.noteId === noteId) {
+        editing_title = original_title;
+      }
+      tab_status = result.message;
+      return;
+    }
+
+    if (open_tabs[focused_tab]?.noteId === noteId) {
+      original_title = title;
+    }
+    tab_status = "";
+    await refresh_notes();
+  }
+
+  function handle_title_keydown(event: KeyboardEvent) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      void save_title();
+      title_input?.blur();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      cancel_title_edit();
+      title_input?.blur();
+    }
   }
 
   async function commit_staged_note() {
@@ -163,16 +297,29 @@
 
     <div class="tabs" role="tablist" aria-label="Open notes">
       {#each open_tabs as tab, index}
-        <button
+        <div
           class="tab"
           class:active={index === focused_tab}
           role="tab"
           aria-selected={index === focused_tab}
-          aria-label={`Open ${tab.title}`}
-          onclick={() => (focused_tab = index)}
         >
-          <span>{tab.title}</span>
-        </button>
+          <button
+            class="tab-main"
+            type="button"
+            aria-label={`Open ${tab.title}`}
+            onclick={() => select_tab(index)}
+          >
+            <span>{tab.title}</span>
+          </button>
+          <button
+            class="tab-close"
+            type="button"
+            aria-label={`Close ${tab.title}`}
+            onclick={() => close_tab(index)}
+          >
+            <X size="14" />
+          </button>
+        </div>
       {/each}
       <button
         class="tab new-tab"
@@ -292,6 +439,21 @@
           autocomplete="off"
           onkeydown={handle_staging_keydown}
           onblur={() => void commit_staged_note()}
+        />
+      </div>
+    {:else if open_tabs[focused_tab]}
+      <div class="note-editor">
+        <p class="note-kicker">Note</p>
+        <input
+          class="note-title"
+          bind:this={title_input}
+          value={editing_title}
+          type="text"
+          aria-label="Edit note title"
+          autocomplete="off"
+          oninput={handle_title_input}
+          onkeydown={handle_title_keydown}
+          onblur={() => void save_title()}
         />
       </div>
     {/if}

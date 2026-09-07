@@ -54,6 +54,15 @@ export async function create_note(title: string, category: NoteCategory): Promis
     }
 }
 
+export async function update_note_title(noteId: number, title: string): Promise<true | Error> {
+    try {
+        await invoke("update_note_title", { noteId, title });
+        return true;
+    } catch (error) {
+        return to_error(error);
+    }
+}
+
 export async function get_notes(category: NoteCategory): Promise<Array<Note>> {
     try {
         const notes = await invoke<Array<BackendNote>>("get_notes", { category });

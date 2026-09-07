@@ -43,18 +43,50 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  max-width: 210px;
-  padding: 0 16px;
-  font-size: 13px;
+  max-width: 230px;
   color: var(--faint);
   white-space: nowrap;
   transition: color 0.13s;
 }
 
-.tab span {
+.tab-main {
+  min-width: 0;
+  padding: 0 7px 0 16px;
+  overflow: hidden;
+  font-size: 13px;
+  color: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-main span {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.tab-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin-right: 4px;
+  color: var(--faint);
+  opacity: 0;
+  transition:
+    color 0.13s,
+    opacity 0.13s;
+}
+
+.tab:hover .tab-close,
+.tab:focus-within .tab-close {
+  opacity: 1;
+}
+
+.tab-close:hover {
+  color: var(--text);
 }
 
 .tab:hover {
@@ -204,12 +236,13 @@
   place-items: center;
 }
 
-.staging-note {
+.note-editor {
   width: min(720px, calc(100% - 64px));
   align-self: start;
   margin-top: clamp(72px, 13vh, 132px);
 }
 
+.note-kicker,
 .staging-kicker {
   margin-bottom: 12px;
   font-size: 11px;
@@ -219,6 +252,7 @@
   color: var(--faint);
 }
 
+.note-title,
 .staging-title {
   display: block;
   width: 100%;
@@ -240,6 +274,7 @@
   opacity: 0.72;
 }
 
+.note-title:focus,
 .staging-title:focus {
   border-bottom-color: var(--text);
   box-shadow: 0 1px 0 var(--text);

@@ -29,3 +29,16 @@ pub fn create_note(conn: &Connection, title: &str, category: NoteCategory) -> Re
 
     Ok(conn.last_insert_rowid())
 }
+
+pub fn update_note_title(conn: &Connection, note_id: u32, title: &str) -> Result<()> {
+    let changed = conn.execute(
+        "UPDATE notes SET title = ?1 WHERE note_id = ?2",
+        (title, note_id),
+    )?;
+
+    if changed == 0 {
+        return Err(rusqlite::Error::QueryReturnedNoRows);
+    }
+
+    Ok(())
+}
