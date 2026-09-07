@@ -5,6 +5,7 @@
     type Note,
     string_to_note_category,
     create_note,
+    get_notes,
   } from "../../lib/notes.svelte";
   import {
     Calendar,
@@ -38,6 +39,7 @@
   let panel_open = $state(true);
   let active_category = $state<(typeof CATEGORIES)[number]["id"]>("journal");
   let query = $state("");
+  let notes = $state<Array<Note>>([]);
 
   let staging_mode = $state(false);
   let staging_title = $state("");
@@ -46,11 +48,36 @@
     active_category = id;
   }
 
+  async function refresh_notes() {
+    const category = string_to_note_category(active_category);
+    if (category === undefined) {
+      notes = [];
+      return;
+    }
+
+    notes = await get_notes(category);
+  }
+
+  $effect(() => {
+    active_category;
+    void refresh_notes();
+  });
+
   async function new_note() {
-    let note = await create_note(
-      staging_title,
-      string_to_note_category(active_category) as NoteCategory,
-    );
+    const category = string_to_note_category(active_category);
+    if (category === undefined) {
+      return;
+    }
+
+    const note = await create_note(staging_title, category);
+    if (note instanceof Error) {
+      tab_status = note.message;
+      return;
+    }
+
+    staging_mode = false;
+    staging_title = "";
+    await refresh_notes();
   }
 </script>
 
@@ -149,7 +176,15 @@
         </div>
 
         <div class="note-list">
-          <p class="empty">No notes</p>
+          {#if notes.length === 0}
+            <p class="empty">No notes</p>
+          {:else}
+            {#each notes as note (note.noteId)}
+              <button class="note-item" type="button">
+                <span>{note.title}</span>
+              </button>
+            {/each}
+          {/if}
         </div>
       </div>
     </aside>

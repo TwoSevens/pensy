@@ -163,6 +163,22 @@
   padding-bottom: 20px;
 }
 
+.note-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  overflow: hidden;
+  color: var(--text);
+  text-align: left;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+}
+
+.note-item:hover {
+  background: var(--line);
+}
+
 .screen {
   position: fixed;
   top: var(--topbar-h);
