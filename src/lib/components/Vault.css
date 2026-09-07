@@ -230,15 +230,15 @@
   left: calc(var(--rail-w) + var(--panel-offset));
   overflow-y: auto;
   transition: left 0.15s;
-  /* centres the empty state; swap for `place-items: start stretch` once a
-       note actually renders here, or tall content will clip at the top */
-  display: grid;
-  place-items: center;
+  /* Keep note title views anchored to the top of the workspace. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.note-editor {
+.note-editor,
+.staging-note {
   width: min(720px, calc(100% - 64px));
-  align-self: start;
   margin-top: clamp(72px, 13vh, 132px);
 }
 

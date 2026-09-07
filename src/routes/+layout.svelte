@@ -1,7 +1,12 @@
 <script lang="ts">
   import "../app.css";
-
-  let { children } = $props();
+  import Login from "../lib/components/Login.svelte";
+  import Vault from "../lib/components/Vault.svelte";
+  import { vault_state } from "../lib/vault.svelte";
 </script>
 
-{@render children()}
+{#if vault_state.loaded}
+  <Vault />
+{:else}
+  <Login />
+{/if}
