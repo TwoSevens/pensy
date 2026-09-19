@@ -47,7 +47,27 @@ function to_error(error: unknown): Error {
 
 export async function create_note(title: string, category: NoteCategory): Promise<Note | Error> {
     try {
-        let noteId = await invoke<number>("create_note", { title, category });
+        let noteId: number;
+        switch (category) {
+            case NoteCategory.Journal:
+                noteId = await invoke<number>("create_journal_note", { title });
+                break;
+            case NoteCategory.People:
+                noteId = await invoke<number>("create_people_note", { title });
+                break;
+            case NoteCategory.Writings:
+                noteId = await invoke<number>("create_writings_note", { title });
+                break;
+            case NoteCategory.Knowledge:
+                noteId = await invoke<number>("create_knowledge_note", { title });
+                break;
+            case NoteCategory.Files:
+                noteId = await invoke<number>("create_file_note", { title });
+                break;
+            default:
+                throw new Error(`Unsupported note category: ${category}`);
+        }
+
         return {noteId, title, category} as Note;
     } catch (error) {
         return to_error(error);

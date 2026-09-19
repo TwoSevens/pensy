@@ -24,8 +24,12 @@ pub fn run() {
             data_manager::commands::get_current_vault_path,
             data_manager::commands::is_vault_loaded,
             db::commands::notes::get_notes,
-            db::commands::notes::create_note,
             db::commands::notes::update_note_title,
+            db::commands::journal::create_journal_note,
+            db::commands::people::create_people_note,
+            db::commands::writings::create_writings_note,
+            db::commands::knowledge::create_knowledge_note,
+            db::commands::files::create_file_note,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

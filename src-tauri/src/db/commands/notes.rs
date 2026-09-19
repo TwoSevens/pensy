@@ -16,19 +16,6 @@ pub fn get_notes(
 }
 
 #[tauri::command]
-pub fn create_note(
-    state: tauri::State<'_, Mutex<Option<VaultState>>>,
-    title: String,
-    category: NoteCategory,
-) -> Result<i64, String> {
-    let vault_state = state.lock().map_err(|e| format!("Could not lock state: {}", e))?;
-    let vault = vault_state.as_ref().ok_or("No vault is open")?;
-
-    repository::create_note(&vault.database, &title, category)
-        .map_err(|e| format!("Could not create note: {}", e))
-}
-
-#[tauri::command]
 pub fn update_note_title(
     state: tauri::State<'_, Mutex<Option<VaultState>>>,
     note_id: u32,

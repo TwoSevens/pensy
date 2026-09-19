@@ -21,15 +21,6 @@ pub fn get_notes(conn: &Connection, category: Option<NoteCategory>) -> Result<Ve
     notes.collect()
 }
 
-pub fn create_note(conn: &Connection, title: &str, category: NoteCategory) -> Result<i64> {
-    conn.execute(
-        "INSERT INTO notes (title, category_id) VALUES (?1, ?2)",
-        (title, category.get_index() as i64),
-    )?;
-
-    Ok(conn.last_insert_rowid())
-}
-
 pub fn update_note_title(conn: &Connection, note_id: u32, title: &str) -> Result<()> {
     let changed = conn.execute(
         "UPDATE notes SET title = ?1 WHERE note_id = ?2",
