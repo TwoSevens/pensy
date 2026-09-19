@@ -89,6 +89,24 @@ CREATE TABLE journal_content (
         ON DELETE CASCADE
 );
 
+CREATE TRIGGER prevent_future_journal_note
+BEFORE INSERT ON journal_notes
+BEGIN
+    SELECT RAISE(ABORT, 'Journal notes cannot be created for a future date.')
+    WHERE DATE(NEW.calendar_day) > DATE('now');
+END;
+
+CREATE TRIGGER prevent_duplicate_journal_note_date
+BEFORE INSERT ON journal_notes
+BEGIN
+    SELECT RAISE(ABORT, 'Only one journal note can be created per day.')
+    WHERE EXISTS (
+        SELECT 1
+        FROM journal_notes
+        WHERE DATE(calendar_day) = DATE(NEW.calendar_day)
+    );
+END;
+
 -- ==================================================
 -- People Notes
 -- ==================================================
