@@ -83,3 +83,39 @@ pub fn update_note_title(
         Err(format!("Note {note_id} was not found"))
     }
 }
+
+#[tauri::command]
+pub fn get_journal_content(
+    state: tauri::State<'_, Mutex<Option<VaultState>>>,
+    note_id: i64,
+) -> Result<String, String> {
+    let vault_state = connection(&state)?;
+    let vault = vault_state
+        .as_ref()
+        .ok_or_else(|| "No vault is open".to_string())?;
+    NoteRepository::new(&vault.database)
+        .get_journal_content(note_id)
+        .map_err(database_error)?
+        .map(|journal| journal.content)
+        .ok_or_else(|| format!("Journal note {note_id} was not found"))
+}
+
+#[tauri::command]
+pub fn update_journal_content(
+    state: tauri::State<'_, Mutex<Option<VaultState>>>,
+    note_id: i64,
+    content: String,
+) -> Result<(), String> {
+    let vault_state = connection(&state)?;
+    let vault = vault_state
+        .as_ref()
+        .ok_or_else(|| "No vault is open".to_string())?;
+    let updated = NoteRepository::new(&vault.database)
+        .update_journal_content(note_id, &content)
+        .map_err(database_error)?;
+    if updated {
+        Ok(())
+    } else {
+        Err(format!("Journal note {note_id} was not found"))
+    }
+}

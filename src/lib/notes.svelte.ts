@@ -77,3 +77,20 @@ export async function get_notes(category: NoteCategory): Promise<Array<Note>> {
         return [];
     }
 }
+
+export async function get_journal_content(noteId: number): Promise<string | Error> {
+    try {
+        return await invoke<string>("get_journal_content", { noteId });
+    } catch (error) {
+        return to_error(error);
+    }
+}
+
+export async function update_journal_content(noteId: number, content: string): Promise<true | Error> {
+    try {
+        await invoke("update_journal_content", { noteId, content });
+        return true;
+    } catch (error) {
+        return to_error(error);
+    }
+}

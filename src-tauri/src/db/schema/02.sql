@@ -6,6 +6,11 @@ CREATE TABLE journal_notes (
     FOREIGN KEY (note_id) REFERENCES notes(note_id) ON DELETE CASCADE
 );
 
+INSERT INTO journal_notes (note_id)
+SELECT note_id
+FROM notes
+WHERE category = 'journal';
+
 -- Keep the parent note's timestamp current whenever journal content changes.
 CREATE TRIGGER trg_journal_notes_content_updated_at
 AFTER UPDATE OF content ON journal_notes

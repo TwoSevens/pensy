@@ -1,5 +1,5 @@
-use crate::db::models::Note;
-use rusqlite::{params, Connection, Result};
+use crate::db::models::{JournalNote, Note};
+use rusqlite::{params, Connection, OptionalExtension, Result};
 
 pub struct NoteRepository<'connection> {
     connection: &'connection Connection,
@@ -51,6 +51,29 @@ impl<'connection> NoteRepository<'connection> {
         let changed = self.connection.execute(
             "UPDATE notes SET title = ?1 WHERE note_id = ?2",
             params![title, note_id],
+        )?;
+        Ok(changed == 1)
+    }
+
+    pub fn get_journal_content(&self, note_id: i64) -> Result<Option<JournalNote>> {
+        self.connection
+            .query_row(
+                "SELECT note_id, content FROM journal_notes WHERE note_id = ?1",
+                params![note_id],
+                |row| {
+                    Ok(JournalNote {
+                        note_id: row.get(0)?,
+                        content: row.get(1)?,
+                    })
+                },
+            )
+            .optional()
+    }
+
+    pub fn update_journal_content(&self, note_id: i64, content: &str) -> Result<bool> {
+        let changed = self.connection.execute(
+            "UPDATE journal_notes SET content = ?1 WHERE note_id = ?2",
+            params![content, note_id],
         )?;
         Ok(changed == 1)
     }

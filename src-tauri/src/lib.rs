@@ -1,7 +1,7 @@
-mod db;
-mod vault;
 mod data_manager;
+mod db;
 mod security;
+mod vault;
 
 use data_manager::initialize_app_data_dir;
 
@@ -10,7 +10,11 @@ use std::sync::Mutex;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_log::Builder::new().level(tauri_plugin_log::log::LevelFilter::Info).build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(tauri_plugin_log::log::LevelFilter::Info)
+                .build(),
+        )
         .setup(|app| {
             setup(app);
             Ok(())
@@ -25,7 +29,9 @@ pub fn run() {
             data_manager::commands::is_vault_loaded,
             db::commands::notes::create_note,
             db::commands::notes::get_notes,
-            db::commands::notes::update_note_title
+            db::commands::notes::update_note_title,
+            db::commands::notes::get_journal_content,
+            db::commands::notes::update_journal_content
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

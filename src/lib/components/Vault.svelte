@@ -1,5 +1,6 @@
 <script lang="ts">
   import "./Vault.css";
+  import JournalEditor from "./JournalEditor.svelte";
   import {
     NoteCategory,
     type Note,
@@ -440,6 +441,28 @@
           onkeydown={handle_staging_keydown}
           onblur={() => void commit_staged_note()}
         />
+      </div>
+    {:else if open_tabs[focused_tab]?.category === NoteCategory.Journal}
+      <div class="note-editor journal-note-editor">
+        <JournalEditor
+          noteId={open_tabs[focused_tab].noteId}
+          onStatus={(message) => (tab_status = message)}
+        >
+          <div slot="title" class="journal-title-region">
+            <p class="note-kicker">Journal</p>
+            <input
+              class="note-title"
+              bind:this={title_input}
+              value={editing_title}
+              type="text"
+              aria-label="Edit note title"
+              autocomplete="off"
+              oninput={handle_title_input}
+              onkeydown={handle_title_keydown}
+              onblur={() => void save_title()}
+            />
+          </div>
+        </JournalEditor>
       </div>
     {:else if open_tabs[focused_tab]}
       <div class="note-editor">

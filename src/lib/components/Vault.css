@@ -242,6 +242,16 @@
   margin-top: clamp(72px, 13vh, 132px);
 }
 
+.journal-note-editor {
+  width: min(720px, calc(100% - 64px));
+  margin-top: 0;
+}
+
+.journal-title-region {
+  width: 100%;
+  padding-top: 24px;
+}
+
 .note-kicker,
 .staging-kicker {
   margin-bottom: 12px;
