@@ -8,6 +8,14 @@
     get_notes,
     update_note_title,
   } from "../../lib/notes.svelte";
+  import CalendarView from "./CalendarView.svelte";
+  import FilesView from "./FilesView.svelte";
+  import JournalView from "./JournalView.svelte";
+  import KnowledgeView from "./KnowledgeView.svelte";
+  import NoteDraft from "./NoteDraft.svelte";
+  import PeopleView from "./PeopleView.svelte";
+  import StatisticsView from "./StatisticsView.svelte";
+  import WritingsView from "./WritingsView.svelte";
   import {
     Calendar,
     ChartColumn,
@@ -24,7 +32,6 @@
     X,
   } from "@lucide/svelte";
 
-  // The five rows seeded into note_category.
   const CATEGORIES = [
     { id: "journal", label: "Journal", icon: NotepadText },
     { id: "people", label: "People", icon: Contact },
@@ -33,7 +40,12 @@
     { id: "files", label: "Files", icon: Folder },
   ] as const;
 
-  const open_tabs: Array<Note> = $state([]);
+  type StaticView = "calendar" | "statistics";
+  type NoteTab = Note & { kind: "note" };
+  type StaticTab = { kind: StaticView; title: string };
+  type OpenTab = NoteTab | StaticTab;
+
+  const open_tabs: Array<OpenTab> = $state([]);
   let focused_tab = $state(0);
   let tab_status = $state("");
 
@@ -44,13 +56,25 @@
 
   let staging_mode = $state(false);
   let staging_title = $state("");
-  let staging_title_input = $state<HTMLInputElement>();
   let creating_note = $state(false);
 
   let editing_title = $state("");
   let original_title = $state("");
-  let title_input = $state<HTMLInputElement>();
   let saving_title = $state(false);
+
+  function is_note_tab(tab: OpenTab | undefined): tab is NoteTab {
+    return tab?.kind === "note";
+  }
+
+  function selected_note(): NoteTab | undefined {
+    const tab = open_tabs[focused_tab];
+    return is_note_tab(tab) ? tab : undefined;
+  }
+
+  function is_open_note(noteId: number): boolean {
+    const tab = open_tabs[focused_tab];
+    return is_note_tab(tab) && tab.noteId === noteId;
+  }
 
   function select_category(id: (typeof CATEGORIES)[number]["id"]) {
     active_category = id;
@@ -90,21 +114,15 @@
     void refresh_notes();
   });
 
-  $effect(() => {
-    if (staging_mode && staging_title_input) {
-      staging_title_input.focus();
-    }
-  });
-
   function sync_title_editor() {
-    const selected_note = open_tabs[focused_tab];
-    editing_title = selected_note?.title ?? "";
-    original_title = selected_note?.title ?? "";
+    const note = selected_note();
+    editing_title = note?.title ?? "";
+    original_title = note?.title ?? "";
   }
 
   function replace_note_title(noteId: number, title: string) {
-    const open_tab = open_tabs.find((tab) => tab.noteId === noteId);
-    if (open_tab) {
+    const open_tab = open_tabs.find((tab) => is_note_tab(tab) && tab.noteId === noteId);
+    if (open_tab && is_note_tab(open_tab)) {
       open_tab.title = title;
     }
 
@@ -115,7 +133,9 @@
   }
 
   function open_note(note: Note) {
-    const existing_tab = open_tabs.findIndex((tab) => tab.noteId === note.noteId);
+    const existing_tab = open_tabs.findIndex(
+      (tab) => is_note_tab(tab) && tab.noteId === note.noteId,
+    );
     if (existing_tab >= 0) {
       focused_tab = existing_tab;
       sync_title_editor();
@@ -123,7 +143,23 @@
       return;
     }
 
-    open_tabs.push({ ...note });
+    open_tabs.push({ ...note, kind: "note" });
+    focused_tab = open_tabs.length - 1;
+    sync_title_editor();
+    tab_status = "";
+  }
+
+  function open_static_view(kind: StaticView) {
+    const existing_tab = open_tabs.findIndex((tab) => tab.kind === kind);
+    if (existing_tab >= 0) {
+      focused_tab = existing_tab;
+      sync_title_editor();
+      tab_status = "";
+      return;
+    }
+
+    const title = kind === "calendar" ? "Calendar" : "Statistics";
+    open_tabs.push({ kind, title });
     focused_tab = open_tabs.length - 1;
     sync_title_editor();
     tab_status = "";
@@ -165,16 +201,16 @@
     const title = (event.currentTarget as HTMLInputElement).value;
     editing_title = title;
 
-    const selected_note = open_tabs[focused_tab];
-    if (selected_note) {
-      replace_note_title(selected_note.noteId, title);
+    const note = selected_note();
+    if (note) {
+      replace_note_title(note.noteId, title);
     }
   }
 
   function cancel_title_edit() {
-    const selected_note = open_tabs[focused_tab];
-    if (selected_note) {
-      replace_note_title(selected_note.noteId, original_title);
+    const note = selected_note();
+    if (note) {
+      replace_note_title(note.noteId, original_title);
     }
 
     editing_title = original_title;
@@ -185,12 +221,12 @@
       return;
     }
 
-    const selected_note = open_tabs[focused_tab];
-    if (!selected_note) {
+    const note = selected_note();
+    if (!note) {
       return;
     }
 
-    const noteId = selected_note.noteId;
+    const noteId = note.noteId;
     const title = editing_title.trim();
     if (title.length === 0) {
       cancel_title_edit();
@@ -209,14 +245,14 @@
 
     if (result instanceof Error) {
       replace_note_title(noteId, original_title);
-      if (open_tabs[focused_tab]?.noteId === noteId) {
+      if (selected_note()?.noteId === noteId) {
         editing_title = original_title;
       }
       tab_status = result.message;
       return;
     }
 
-    if (open_tabs[focused_tab]?.noteId === noteId) {
+    if (selected_note()?.noteId === noteId) {
       original_title = title;
     }
     tab_status = "";
@@ -227,11 +263,11 @@
     if (event.key === "Enter") {
       event.preventDefault();
       void save_title();
-      title_input?.blur();
+      (event.currentTarget as HTMLInputElement).blur();
     } else if (event.key === "Escape") {
       event.preventDefault();
       cancel_title_edit();
-      title_input?.blur();
+      (event.currentTarget as HTMLInputElement).blur();
     }
   }
 
@@ -258,7 +294,6 @@
 
     if (note instanceof Error) {
       tab_status = note.message;
-      staging_title_input?.focus();
       return;
     }
 
@@ -266,6 +301,10 @@
     staging_title = "";
     open_note(note);
     await refresh_notes();
+  }
+
+  function handle_staging_input(event: Event) {
+    staging_title = (event.currentTarget as HTMLInputElement).value;
   }
 
   function handle_staging_keydown(event: KeyboardEvent) {
@@ -295,7 +334,7 @@
       {/if}
     </button>
 
-    <div class="tabs" role="tablist" aria-label="Open notes">
+    <div class="tabs" role="tablist" aria-label="Open tabs">
       {#each open_tabs as tab, index}
         <div
           class="tab"
@@ -348,19 +387,24 @@
       {/each}
     </div>
 
-    <!-- set apart from the categories: these are views, not note types -->
     <div class="rail-group rail-middle">
       <button
         class="icon-btn tip-right"
+        class:active={open_tabs[focused_tab]?.kind === "calendar"}
         data-label="Calendar"
         aria-label="Calendar"
+        aria-current={open_tabs[focused_tab]?.kind === "calendar"}
+        onclick={() => open_static_view("calendar")}
       >
         <Calendar size="17" />
       </button>
       <button
         class="icon-btn tip-right"
+        class:active={open_tabs[focused_tab]?.kind === "statistics"}
         data-label="Statistics"
         aria-label="Statistics"
+        aria-current={open_tabs[focused_tab]?.kind === "statistics"}
+        onclick={() => open_static_view("statistics")}
       >
         <ChartColumn size="17" />
       </button>
@@ -405,7 +449,7 @@
             {#each notes as note (note.noteId)}
               <button
                 class="note-item"
-                class:active={open_tabs[focused_tab]?.noteId === note.noteId}
+                class:active={is_open_note(note.noteId)}
                 type="button"
                 onclick={() => open_note(note)}
               >
@@ -418,44 +462,28 @@
     </aside>
   {/if}
 
-  <main
-    class="vault-screen"
-    onclick={(event) => {
-      if (staging_mode && event.target !== staging_title_input) {
-        void commit_staged_note();
-      }
-    }}
-  >
+  <main class="vault-screen">
     {#if staging_mode}
-      <div class="staging-note">
-        <p class="staging-kicker">New note</p>
-        <input
-          class="staging-title"
-          bind:this={staging_title_input}
-          bind:value={staging_title}
-          type="text"
-          placeholder="Untitled note"
-          aria-label="Note title"
-          autocomplete="off"
-          onkeydown={handle_staging_keydown}
-          onblur={() => void commit_staged_note()}
-        />
-      </div>
-    {:else if open_tabs[focused_tab]}
-      <div class="note-editor">
-        <p class="note-kicker">Note</p>
-        <input
-          class="note-title"
-          bind:this={title_input}
-          value={editing_title}
-          type="text"
-          aria-label="Edit note title"
-          autocomplete="off"
-          oninput={handle_title_input}
-          onkeydown={handle_title_keydown}
-          onblur={() => void save_title()}
-        />
-      </div>
+      <NoteDraft
+        value={staging_title}
+        oninput={handle_staging_input}
+        onkeydown={handle_staging_keydown}
+        onblur={() => void commit_staged_note()}
+      />
+    {:else if open_tabs[focused_tab]?.kind === "calendar"}
+      <CalendarView />
+    {:else if open_tabs[focused_tab]?.kind === "statistics"}
+      <StatisticsView />
+    {:else if selected_note()?.category === NoteCategory.Journal}
+        <JournalView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
+    {:else if selected_note()?.category === NoteCategory.People}
+        <PeopleView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
+    {:else if selected_note()?.category === NoteCategory.Writings}
+        <WritingsView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
+    {:else if selected_note()?.category === NoteCategory.Knowledge}
+        <KnowledgeView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
+    {:else if selected_note()?.category === NoteCategory.Files}
+        <FilesView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
     {/if}
   </main>
 
