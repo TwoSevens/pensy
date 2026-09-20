@@ -14,6 +14,7 @@
   import KnowledgeView from "./KnowledgeView.svelte";
   import NoteDraft from "./NoteDraft.svelte";
   import PeopleView from "./PeopleView.svelte";
+  import SettingsView from "./SettingsView.svelte";
   import StatisticsView from "./StatisticsView.svelte";
   import WritingsView from "./WritingsView.svelte";
   import {
@@ -40,7 +41,7 @@
     { id: "files", label: "Files", icon: Folder },
   ] as const;
 
-  type StaticView = "calendar" | "statistics";
+  type StaticView = "calendar" | "statistics" | "settings";
   type NoteTab = Note & { kind: "note" };
   type StaticTab = { kind: StaticView; title: string };
   type OpenTab = NoteTab | StaticTab;
@@ -158,7 +159,8 @@
       return;
     }
 
-    const title = kind === "calendar" ? "Calendar" : "Statistics";
+    const title =
+      kind === "calendar" ? "Calendar" : kind === "statistics" ? "Statistics" : "Settings";
     open_tabs.push({ kind, title });
     focused_tab = open_tabs.length - 1;
     sync_title_editor();
@@ -415,6 +417,9 @@
         class="icon-btn tip-right"
         data-label="Settings"
         aria-label="Settings"
+        class:active={open_tabs[focused_tab]?.kind === "settings"}
+        aria-current={open_tabs[focused_tab]?.kind === "settings"}
+        onclick={() => open_static_view("settings")}
       >
         <Settings size="17" />
       </button>
@@ -474,6 +479,8 @@
       <CalendarView />
     {:else if open_tabs[focused_tab]?.kind === "statistics"}
       <StatisticsView />
+    {:else if open_tabs[focused_tab]?.kind === "settings"}
+      <SettingsView />
     {:else if selected_note()?.category === NoteCategory.Journal}
         <JournalView title={editing_title} oninput={handle_title_input} onkeydown={handle_title_keydown} onblur={() => void save_title()} />
     {:else if selected_note()?.category === NoteCategory.People}
