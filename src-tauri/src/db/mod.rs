@@ -6,11 +6,7 @@ use rusqlite::{Connection, Result};
 use std::path::PathBuf;
 use hex;
 
-const SCHEMA: &'static str = include_str!("./schema.sql");
-
-// Migrations go here. 
-// The SCHEMA is treated as a migration since db initialization always checks and runs migrations.
-const MIGRATIONS: &'static [&'static str] = &[SCHEMA];
+const MIGRATIONS: &'static [&'static str] = &[include_str!("./schema/01.sql")];
 
 fn get_version(conn: &Connection) -> Result<u32> {
     conn.query_row("PRAGMA user_version", [], |row| row.get(0))
