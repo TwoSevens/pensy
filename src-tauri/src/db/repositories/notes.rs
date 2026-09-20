@@ -15,7 +15,14 @@ impl<'connection> NoteRepository<'connection> {
             "INSERT INTO notes (title, category) VALUES (?1, ?2)",
             params![title, category],
         )?;
-        Ok(self.connection.last_insert_rowid())
+        let note_id = self.connection.last_insert_rowid();
+        if category == "journal" {
+            self.connection.execute(
+                "INSERT INTO journal_notes (note_id) VALUES (?1)",
+                params![note_id],
+            )?;
+        }
+        Ok(note_id)
     }
 
     pub fn list_by_category(&self, category: &str) -> Result<Vec<Note>> {
@@ -42,7 +49,7 @@ impl<'connection> NoteRepository<'connection> {
 
     pub fn update_title(&self, note_id: i64, title: &str) -> Result<bool> {
         let changed = self.connection.execute(
-            "UPDATE notes SET title = ?1, updated_at = unixepoch() WHERE note_id = ?2",
+            "UPDATE notes SET title = ?1 WHERE note_id = ?2",
             params![title, note_id],
         )?;
         Ok(changed == 1)
