@@ -23,9 +23,9 @@ pub fn run() {
             data_manager::commands::list_vaults,
             data_manager::commands::get_current_vault_path,
             data_manager::commands::is_vault_loaded,
-            db::commands::create_note,
-            db::commands::get_notes,
-            db::commands::update_note_title
+            db::commands::notes::create_note,
+            db::commands::notes::get_notes,
+            db::commands::notes::update_note_title
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
